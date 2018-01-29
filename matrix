@@ -123,7 +123,6 @@ transpose(){
 	do
 		cut -f "$i" "$TMP" | paste -s # Cut and transpose element at i.
 	done
-
 	rm -f $TMP # Reap the temp file.
 }
 
@@ -193,9 +192,9 @@ do
 		do
 			x=$(cut -d'	' -f$j <<< "$f1") # Get element form file 1.
 			y=$(cut -d'	' -f$j <<< "$f2") # Get element from file 2.
-			let "product+=x*y" # Get the product of x and y.
+			let "product+=x*y" # Get the product of x and y, store value in variable product.
 		done
-			# If end of a row or not.
+			# If end of a col2 or not.
 			if [ $z == $col2 ]
 			then
 				printf "%d\n" $product
