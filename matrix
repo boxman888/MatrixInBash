@@ -1,0 +1,255 @@
+#!/bin/bash
+
+#####################################################################
+# Auther: Ethan Patterson
+# Class: CS344,	Assignment-1
+# Date: January 26th 2018
+# Discription: Preforms matrix opperations add, multiply, transpose,
+# and dimensions.
+# ------------------Algorithm----------------------------------------
+#	See individual functions discriptions for algorithm.
+#	Discriptions will be comments just before the
+#	function is declared.
+#-------------------Terms used---------------------------------------
+# Some short hand notation to be aware of: args = arguments,
+# col = column, TMP = temp file.
+#----------------------NOTE------------------------------------------
+# I do not explain the mathematical reason for some operations.
+# The reader must have a basic understanding of matrix operations to
+# fully comprehend things done in this script.
+#####################################################################
+
+#####################
+# UTILITY FUNCTIONS 
+#####################
+
+# Takes all args as an input and tests if they are vailid files.
+argTest(){	
+	TMP="tempfile$$" # Make a temp file.
+	if [[ "$#" -gt 2 ]] # If arg count is greater than 2.
+	then
+		printf "Failed: too many args.\n" >&2
+		exit 1
+	elif [[ "$#" -le 1 ]] # If arguments is less than or equal to 1.
+	then		
+		$(cat > $TMP) # Check stdin if there is any new data there.
+	elif [[ "$#" == 2 && (! -f "$2" || ! -r "$2") ]]
+	then 
+		printf "Failed: File $2 not found or unreadable.\n" >&2
+		exit 1
+	else
+		cat "$2" > $TMP # Move data to temp file, just in case.
+	fi
+	echo $TMP # Echo to stdin contents of the temp file.
+}
+
+##############
+# FUNCTIONS
+##############
+
+# Get the dimensions of a matrix file.
+# sends dimensions to stdin.
+dims(){	
+	TMP=$(argTest $@) # Test args.
+	if [ ! $TMP ] # If argTest fails
+	then
+		rm -f $TMP
+		exit 1
+	fi
+
+	row=$(wc -l < $TMP) # Count the total lines in stdin, send what is in temp to stdin.
+	col=$(($(head -n 1 "$TMP" | grep -o $'\t' | wc -l)+1)) # Count the number of columns.
+
+	echo "$row $col" # Echo out to stdin.
+	rm -f $TMP # Reap the tmp file.
+}
+# Add two matrix files of MxN and MxN.
+# This is done by using two loops to get the current row column index of the character to
+# cut from two file and then sumed together.
+add(){
+	# If arg DNE.
+	if [[ ! -f "$1" || ! -f "$2" ]]
+	then
+		printf "Failed: An arg does not exist.\n">&2
+		exit 1
+	fi
+
+	# Get row and coulmn count from both files called row col col2 row2.
+	row=$(wc -l < $1)
+	row2=$(wc -l < $2)
+	col=$(($(head -n 1 "$1" | grep -o $'\t' | wc -l)+1))
+	col2=$(($(head -n 1 "$2" | grep -o $'\t' | wc -l)+1))
+
+	# Check if MxN matrix is true.
+	if [[ !(($row == $row2) && ($col == $col2)) ]]
+	then
+		printf "Faild: MxN do not match!\n" >&2
+		exit 1
+	fi
+
+	for ((i=1; i<="$row"; i++)) # index[1...i] of rows.
+	do
+		f1=$(head "-$i" "$1" | tail -1) # Get line at index i from arg 1.
+		f2=$(head "-$i" "$2" | tail -1) # Get line at index i from arg 2.
+		for ((j=1; j <="$col"; j++)) # index[1..j] of columns.
+		do
+			a=$(cut -d'	' -f$j <<< "$f1") # Cut index j from f1.
+			b=$(cut -d'	' -f$j <<< "$f2") # Cut index j from f2.
+			sum=$((a + b))
+			# If last index in line carage return.
+			if [ $j == $col ]
+			then
+				printf "%d\n" $sum
+			else
+				printf "%d\t" $sum
+			fi
+		done
+	done
+}
+
+# Transpose a passed matrix file.
+# Done with a single index loop cutting each character 
+# and paste it to stdin. This works do to the loop going through
+# column index.
+transpose(){	
+	TMP=$(argTest $@)
+	if [ ! $TMP ]
+	then
+		rm -f $TMP
+		exit 1
+	fi
+	numc=$(($(head -n 1 "$TMP" | grep -o $'\t' | wc -l)+1)) # Get the column number.
+	for ((i=1; i<="$numc"; i++))
+	do
+		cut -f "$i" "$TMP" | paste -s # Cut and transpose element at i.
+	done
+
+	rm -f $TMP # Reap the temp file.
+}
+
+# Function finds the mean of each column in a file.
+# Mean is found by looping through the column and row
+# indexes, and cuting each charater and adding it to a sum
+# called a. a is then taken pumped through the math function
+# given in class.
+mean(){
+	file=$(argTest $@) # Test if args ar valid.
+	if [ ! $file ] # If args failed test.
+	then
+		rm -f $file # Reap temp file.
+		exit 1
+	fi
+	row=$(wc -l < $file) # Get row count.
+	numc=$(($(head -n 1 "$file" | grep -o $'\t' | wc -l)+1)) #Get column count.
+	for (( i=1; i<="$numc"; i++))
+	do
+		a=0 # Holds sum of values.
+		b=0 # Counts all the number of columns.
+		col=$(cut -f "$i" "$file")
+		for x in $col
+		do
+			a=$((a + x))
+			b=$((b + 1))
+		done
+		mean=$((($a + ($b/2)*( ($a>0)*2-1))/$b )) # Get the mean
+		# Prints a tab if not end of column index.
+		if [[ $numc == $i ]]
+		then
+			printf "%d" $mean
+		else
+			printf "%d\t" $mean
+		fi
+	done
+	#printf "\n"
+	rm -f $file
+}
+
+# / clean this function if time allows /
+# Multiply function
+# Matrix multiplication is achived through three index loops.
+# A row loop for file 1, a row loop for file 2. and a column loop for file 1 and 2.
+multiply(){
+row=$(wc -l < $2) # Get the row count for file 1.
+row2=$(wc -l < $3) # Get the row cout for file 2.
+col=$(($(head -n 1 "$2" | grep -o $'\t' | wc -l)+1)) # Get the number of columns in file 1.
+col2=$(($(head -n 1 "$3" | grep -o $'\t' | wc -l)+1)) # Get the number of columns in file 2.
+# If N in one is not equal to M in two.
+if [[ !($col == $row2) ]]
+then
+	printf "Faild: not and MxN NxM relation\n" >&2
+	exit 1
+fi
+# Move index through row count of file 1.
+for ((i=1; i<="$row"; i++))
+do
+	f1=$(head "-$i" "$2" | tail -1)
+	# Move index through column count in file 2.
+	for ((z=1; z<="$col2"; z++))
+	do
+		f2=$(cut -f$z $3 | tr '\n' '\t') # Cut column of file 2
+		product=0 # Default value to zero when moving to a new row/col.
+		# Move through col of file 1
+		for ((j=1; j<="$col"; j++))
+		do
+			x=$(cut -d'	' -f$j <<< "$f1") # Get element form file 1.
+			y=$(cut -d'	' -f$j <<< "$f2") # Get element from file 2.
+			let "product+=x*y" # Get the product of x and y.
+		done
+			# If end of a row or not.
+			if [ $z == $col2 ]
+			then
+				printf "%d\n" $product
+			else
+				printf "%d\t" $product
+			fi
+	done
+done
+}
+#############
+# MAIN BODY
+#############
+# / Clean into case statments if time allowes /
+#####################################################################
+# If, else if, and else statments used to handle user input.
+#####################################################################
+if [ "$1" == "dims" ]
+then	
+	dims $@ # Pass all args to dims function.
+# / Move arg test to function if time allows /
+elif [ "$1" == "add" ]
+then
+	if [[ "$#" -gt 3 ]]
+	then
+		printf "Failed: too many args.\n" >&2
+		exit 1
+	elif [[ "$#" < 3 ]]
+	then
+		printf "Failed: too few args.\n" >&2
+		exit 1
+	fi
+	
+	add $2 $3
+
+elif [ "$1" == "transpose" ]
+then
+	transpose $@ # Pass all args to tranpose function.
+elif [ "$1" == "mean" ]
+then
+	mean $@ # Pass all args to mean function.
+elif [ "$1" == "multiply" ]
+then
+	if [[ "$#" -gt 3 ]]
+	then
+		printf "Failed: too many args.\n" >&2
+		exit 1
+	elif [[ "$#" < 3 ]]
+	then
+		printf "Failed: too few args.\n" >&2
+		exit 1
+	fi
+
+	multiply $@ # Pass all args to multiply function.
+else # default error for unknown issue.
+	printf "ERROR: Not a matrix command!\n" >&2
+	exit 1
+fi
