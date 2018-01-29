@@ -208,7 +208,7 @@ done
 #############
 # MAIN BODY
 #############
-# / Clean into case statments if time allowes /
+# / Clean into case statments if time allows /
 #####################################################################
 # If, else if, and else statments used to handle user input.
 #####################################################################
