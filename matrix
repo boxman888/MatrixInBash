@@ -12,7 +12,7 @@
 #	function is declared.
 #-------------------Terms used---------------------------------------
 # Some short hand notation to be aware of: args = arguments,
-# col = column, TMP = temp file.
+# col = column, numc = column number, TMP = temp file.
 #----------------------NOTE------------------------------------------
 # I do not explain the mathematical reason for some operations.
 # The reader must have a basic understanding of matrix operations to
